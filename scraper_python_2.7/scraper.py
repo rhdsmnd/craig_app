@@ -9,7 +9,8 @@ from time import sleep
 import os
 
 import requests
-import sqlite3
+
+import psycopg2
 
 
 import lxml.html
@@ -46,7 +47,11 @@ def getProjectRootDir():
 
 
 def setupDb(db):
-    db.executescript("""
+
+    cur = db.cursor()
+    print cur
+
+    cur.execute("""
         CREATE TABLE IF NOT EXISTS Listing(
             id INTEGER PRIMARY KEY,
             title TEXT NOT NULL,
@@ -61,6 +66,8 @@ def setupDb(db):
             longitude REAL,
             neighborhood TEXT NOT NULL
         );
+      """)
+    cur.execute("""
         CREATE TABLE IF NOT EXISTS LastSeen(
             id INTEGER PRIMARY KEY,
             yr INTEGER NOT NULL,
@@ -71,7 +78,8 @@ def setupDb(db):
         );
     """)
 
-    lastSeen = getLastSeenDb(db)
+    a = """
+    lastSeen = getLastSeenDb(cur)
     defaultLastSeen = {
         "yr" : 2017,
         "mth" : 6,
@@ -80,16 +88,17 @@ def setupDb(db):
         "min" : 0
     }
     if (lastSeen is None or compDt(lastSeen, defaultLastSeen) < 0):
-        db.execute("""
+        cur.execute( '''
             INSERT OR REPLACE INTO LastSeen(id, yr, mth, day, hour, min)
                 VALUES(1, ?, ?, ?, ?, ?);
-        """, (
+        ''', (
             defaultLastSeen["yr"],
             defaultLastSeen["mth"],
             defaultLastSeen["day"],
             defaultLastSeen["hour"],
             defaultLastSeen["min"]
         ))
+    """
     db.commit()
 
 
@@ -115,8 +124,6 @@ def simpleDist(lat1, lon1, lat2, lon2):
     dLat = math.radians(lat2 - lat1)
     dLon = math.radians(lon2 - lon1)
     return math.sqrt(math.pow(earthRad * math.cos(math.radians(lat1)) * dLon, 2) + math.pow(earthRad * dLat, 2))
-
-def getConvexHull(points):
 
 
 
@@ -174,8 +181,8 @@ def compDt(first, second):
 
     return 0
 
-def getLastSeenDb(db):
-    res = db.execute("""
+def getLastSeenDb(cur):
+    res = cur.execute("""
         SELECT
           LastSeen.yr,
           LastSeen.mth,
@@ -308,9 +315,10 @@ def updateLastSeenDb(newDt, db):
 def start():
     print "Running scraper."
 
-    db = sqlite3.connect('craig_posts.sqlite3')
+
+    db = psycopg2.connect(dbname="craig_app", user="craig_user", password="asdf", host="localhost")
     setupDb(db)
-    lastSeenDb = getLastSeenDb(db)
+    #lastSeenDb = getLastSeenDb(db)
     maxToSee = 1080
 
     try:
@@ -398,4 +406,4 @@ def start():
     db.close()
 
 
-#start()
+start()
