@@ -100,6 +100,7 @@ def setupDb(db):
         ))
     """
     db.commit()
+    return db
 
 
 def parseDt(craigDt):
@@ -312,14 +313,35 @@ def updateLastSeenDb(newDt, db):
     db.commit()
     return
 
-def start():
+def computePrefs(input):
+
+    # get desired locations from database
+    # put each location into prefs
+
+
+    res = {
+        "qParams": {
+            "br" : [3, 3],
+            "max_price" : 5450,
+            "min_price" : 3000,
+            "sort" : "date"
+        }
+    }
+
+    # for key in input, replace key in res if it is an official key
+
+    return res
+
+def start(inputPrefs):
     print "Running scraper."
 
-
+    scraperPrefs = computePrefs(inputPrefs)
     db = psycopg2.connect(dbname="craig_app", user="craig_user", password="asdf", host="localhost")
     setupDb(db)
+    maxToSee = total = 1080
+
+
     #lastSeenDb = getLastSeenDb(db)
-    maxToSee = 1080
 
     try:
         s = 0
@@ -327,9 +349,10 @@ def start():
         seenDuplicate = False
         updateSeenDt = None
         saved = []
-        while (s < maxToSee and not seenDuplicate):
+        while (s < maxToSee and s < total and not seenDuplicate):
 
-            qParams = {"sort": "date", "max_price": 1956, "min_price" : 1200, "s": s}
+            qParams = scraperPrefs["qParams"]
+            qParams["s"] = s
             parsed = makeReq("https://sfbay.craigslist.org/search/apa", qParams)
 
             selRows = CSSSelector('.result-row')
@@ -343,7 +366,7 @@ def start():
                 print "No listings for query with parameters: " + str(qParams)
                 break
             else:
-                total = selTotal(parsed)[0].text
+                total = int(selTotal(parsed)[0].text)
                 start = selStart(parsed)[0].text
                 end = selEnd(parsed)[0].text
                 print "Retrieved " + str(start) + " to " + str(end) + " of " + str(total) + " listings."

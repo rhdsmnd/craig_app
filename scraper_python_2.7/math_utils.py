@@ -57,8 +57,10 @@ def getConvexHull(points):
 
     return res
 
+"""
 def inHull(hull, point):
     return point not in getConvexHull(hull + [point])
+"""
 
 def findCosOfVecs(vec1, vec2):
     return ((vec1[0] * vec2[0] + vec1[1] * vec2[1])
@@ -100,17 +102,3 @@ def getXYArr(coords, centerLat):
     for point in coords:
         res.append(getXY(point, centerLat))
     return res
-
-
-
-class Line():
-    def __init__(self, point1, point2):
-        self.p1 = point1
-        self.p2 = point2
-        self.a = (self.p1.y - self.p2.y) / (self.p1.x - self.p2.x)
-        self.b = self.p1.y - (self.p1.x * self.a)
-
-class Point():
-    def __init__(self, point):
-        self.x = point[0]
-        self.y = point[1]
