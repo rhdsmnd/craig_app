@@ -1,4 +1,4 @@
-package rhd.craig_app;
+package rhd.craig_app.controllers;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
