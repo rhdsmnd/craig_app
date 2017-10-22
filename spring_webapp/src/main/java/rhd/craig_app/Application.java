@@ -20,7 +20,11 @@ public class Application {
 
     @Bean
     public DataSource getDataSource() {
-        return DataSourceBuilder.create().build();
+        return DataSourceBuilder.create()
+                .url("jdbc:postgresql://localhost/craig_app")
+                .username("rhdsmnd")
+                .password("test")
+                .build();
     }
 
 }
