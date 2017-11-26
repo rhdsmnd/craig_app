@@ -57,48 +57,14 @@ def setupDb(db):
             title TEXT NOT NULL,
             href TEXT NOT NULL,
             price INTEGER NOT NULL,
-            yr INTEGER NOT NULL,
-            mth INTEGER NOT NULL,
-            day INTEGER NOT NULL,
-            hour INTEGER NOT NULL,
-            min INTEGER NOT NULL,
             latitude REAL,
             longitude REAL,
+            br INTEGER,
+            ts TIMESTAMP WITHOUT TIME ZONE NOT NULL,
             neighborhood TEXT NOT NULL
         );
       """)
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS LastSeen(
-            id INTEGER PRIMARY KEY,
-            yr INTEGER NOT NULL,
-            mth INTEGER NOT NULL,
-            day INTEGER NOT NULL,
-            hour INTEGER NOT NULL,
-            min INTEGER NOT NULL
-        );
-    """)
 
-    a = """
-    lastSeen = getLastSeenDb(cur)
-    defaultLastSeen = {
-        "yr" : 2017,
-        "mth" : 6,
-        "day" : 1,
-        "hour" : 0,
-        "min" : 0
-    }
-    if (lastSeen is None or compDt(lastSeen, defaultLastSeen) < 0):
-        cur.execute( '''
-            INSERT OR REPLACE INTO LastSeen(id, yr, mth, day, hour, min)
-                VALUES(1, ?, ?, ?, ?, ?);
-        ''', (
-            defaultLastSeen["yr"],
-            defaultLastSeen["mth"],
-            defaultLastSeen["day"],
-            defaultLastSeen["hour"],
-            defaultLastSeen["min"]
-        ))
-    """
     db.commit()
     return db
 
@@ -126,11 +92,10 @@ def simpleDist(lat1, lon1, lat2, lon2):
     dLon = math.radians(lon2 - lon1)
     return math.sqrt(math.pow(earthRad * math.cos(math.radians(lat1)) * dLon, 2) + math.pow(earthRad * dLat, 2))
 
-
-
-# calculate distances from points of interest and return true if it is within a small enough distance
+# Filter for listings retrieved by Craigslist: modify with your own metrics to return True for favorable listings.
 def highPriority(info):
-    if (info["hood"] is not "tenderloin" and (isInSfBox(info) or isCloseToBart(info))):
+    if (info["hood"] is not "tenderloin" and isInSfBox(info) and info["br"] >= 3):
+        print info["hood"] + "  --  " + info["br"]
         return True
     else:
         return False
@@ -182,7 +147,9 @@ def compDt(first, second):
 
     return 0
 
-def getLastSeenDb(cur):
+def getLastSeenDb(db):
+
+    cur = db.cursor()
     res = cur.execute("""
         SELECT
           LastSeen.yr,
@@ -191,7 +158,7 @@ def getLastSeenDb(cur):
           LastSeen.hour,
           LastSeen.min
         FROM LastSeen
-    """).fetchone()
+    """)
 
     if (res is None):
         return None
@@ -231,6 +198,7 @@ def extractHeaderInfo(listing):
     selPrice = CSSSelector(".result-price")
     selHood = CSSSelector(".result-hood")
     selMaptag = CSSSelector('.maptag')
+    selHousing = CSSSelector('.housing')
 
     try:
         ret["id"] = int(listing.attrib["data-pid"])
@@ -240,6 +208,15 @@ def extractHeaderInfo(listing):
 
     ret["title"] = selTitle(listing)[0].text
     ret["href"] = selTitle(listing)[0].attrib["href"]
+    if (len(selHousing(listing)) > 0):
+        try:
+            ret["br"] = int(selHousing(listing)[0].text.strip()[0])
+        except ValueError as e:
+            print "Could not parse bedroom # for https://sfbay.craigslist.org" + ret["href"]
+            return None
+    else:
+        print "No bedroom # for https://sfbay.craigslist.org" + ret["href"]
+        return None
 
     postDt = parseDt(listing.find(".//time").attrib["datetime"])
     if (postDt is None):
@@ -320,8 +297,14 @@ def computePrefs(input):
 
 
     res = {
+
+        "dbParams": {
+            "dbname" : "craig_app",
+            "user" : "craig_user",
+            "password" : "asdf",
+            "host" : "localhost"
+        },
         "qParams": {
-            "br" : [3, 3],
             "max_price" : 5450,
             "min_price" : 3000,
             "sort" : "date"
@@ -336,12 +319,13 @@ def start(inputPrefs):
     print "Running scraper."
 
     scraperPrefs = computePrefs(inputPrefs)
-    db = psycopg2.connect(dbname="craig_app", user="craig_user", password="asdf", host="localhost")
+    db = psycopg2.connect(dbname=scraperPrefs["dbParams"]["dbname"], user=scraperPrefs["dbParams"]["user"],
+                          password=scraperPrefs["dbParams"]["password"], host=scraperPrefs["dbParams"]["host"])
     setupDb(db)
     maxToSee = total = 1080
 
 
-    #lastSeenDb = getLastSeenDb(db)
+    lastSeenDb = getLastSeenDb(db)
 
     try:
         s = 0
@@ -384,7 +368,7 @@ def start(inputPrefs):
                         s += 1
                         info = extractHeaderInfo(listings[i])
                         if (info is not None):
-                            if (compDt(lastSeenDb, info["dt"]) > -1):
+                            if (lastSeenDb is not None and compDt(lastSeenDb, info["dt"]) > -1):
                                 print "post dt is " + str(info["dt"])
                                 print "last seen dt is " + str(lastSeenDb)
                                 seenDuplicate = True
@@ -429,4 +413,4 @@ def start(inputPrefs):
     db.close()
 
 
-start()
+start({})
