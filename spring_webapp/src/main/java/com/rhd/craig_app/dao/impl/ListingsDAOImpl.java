@@ -1,8 +1,8 @@
-package rhd.craig_app.dao.impl;
+package com.rhd.craig_app.dao.impl;
 
-import rhd.craig_app.dao.ListingsDAO;
+import com.rhd.craig_app.dao.ListingsDAO;
 
-import rhd.craig_app.domain.Listing;
+import com.rhd.craig_app.domain.Listing;
 
 import org.springframework.stereotype.Repository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +15,9 @@ public class ListingsDAOImpl implements ListingsDAO {
 
     private JdbcTemplate jdbcTemplate;
 
-    public Listing[] queryDb(int num) {
+    public Listing[] queryDb(Long ts) {
+
+
         return new Listing[1];
     }
 

@@ -1,24 +1,27 @@
 package com.rhd.craig_app.services.impl;
 
-import rhd.craig_app.services.ListingsService;
-import rhd.craig_app.dao.ListingsDAO;
-import rhd.craig_app.domain.Listing;
+import com.rhd.craig_app.services.ListingsService;
+import com.rhd.craig_app.dao.ListingsDAO;
+import com.rhd.craig_app.domain.Listing;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
+import org.springframework.stereotype.Service;
+
+@Service
 public class ListingsServiceImpl implements ListingsService {
 
     private ListingsDAO listingsDAO;
 
     public Listing[] getListings() {
-        return getListings(10);
+        return getListings(0);
     }
 
-    public Listing[] getListings(int num) {
+    public Listing[] getListings(Long ts) {
         // connect to database
         // retrieve & return 20 most recent posts
 
-        Listing[] listingsRes = listingsDAO.queryDb(num);
+        Listing[] listingsRes = listingsDAO.queryDb(ts);
 
         return listingsRes;
     }

@@ -1,4 +1,4 @@
-package rhd.craig_app;
+package com.rhd.craig_app;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -22,8 +22,8 @@ public class Application {
     public DataSource getDataSource() {
         return DataSourceBuilder.create()
                 .url("jdbc:postgresql://localhost/craig_app")
-                .username("rhdsmnd")
-                .password("test")
+                .username("craig_user")
+                .password("asdf")
                 .build();
     }
 

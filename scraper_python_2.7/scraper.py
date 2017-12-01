@@ -52,7 +52,7 @@ def setupDb(db):
     print cur
 
     cur.execute("""
-        CREATE TABLE IF NOT EXISTS Listing(
+        CREATE TABLE IF NOT EXISTS listing(
             id INTEGER PRIMARY KEY,
             title TEXT NOT NULL,
             href TEXT NOT NULL,
@@ -65,22 +65,26 @@ def setupDb(db):
         );
       """)
 
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS last_seen(
+          ts TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+          CONSTRAINT last_seen_pkey PRIMARY KEY (ts)
+        );
+    """)
+
     db.commit()
     return db
 
 
 def parseDt(craigDt):
+    print "in parseDT"
     dtMatch = dtPat.match(craigDt)
 
     if (dtMatch is None):
         return None
-    return {
-        "yr" : int(dtMatch.group("yr")),
-        "mth" : int(dtMatch.group("mth")),
-        "day" : int(dtMatch.group("day")),
-        "hour" : int(dtMatch.group("hour")),
-        "min" : int(dtMatch.group("min"))
-    }
+    ret = craigDt + ":00"
+    print ret
+    return ret
 
 # use distance formula to calculate miles between 2 latitude/longitude coordinates
 def simpleDist(lat1, lon1, lat2, lon2):
@@ -120,6 +124,7 @@ def isCloseToBart(info):
 # if first is earlier than the second, return -1
 # if the two datetimes are equal (to the minute), return 0
 def compDt(first, second):
+    """
     if (first["yr"] > second["yr"]):
         return 1
     elif (first["yr"] < second["yr"]):
@@ -144,36 +149,24 @@ def compDt(first, second):
         return 1
     elif (first["min"] < second["min"]):
         return -1
-
+    """
     return 0
 
 def getLastSeenDb(db):
 
     cur = db.cursor()
     res = cur.execute("""
-        SELECT
-          LastSeen.yr,
-          LastSeen.mth,
-          LastSeen.day,
-          LastSeen.hour,
-          LastSeen.min
-        FROM LastSeen
+        SELECT ts FROM last_seen ORDER BY ts DESC LIMIT 1;
     """)
 
     if (res is None):
         return None
     else:
-        return {
-            "yr" : res[0],
-            "mth" : res[1],
-            "day" : res[2],
-            "hour" : res[3],
-            "min" : res[4],
-        }
+        print res
 
 def newestOnPage(parsedPage, db):
     rawDt = parsedPage.find(".//time").attrib["datetime"]
-    return parseDt(rawDt)
+    return rawDt + ":00"
 
 def makeReq(url, qParams):
     if (len(qParams) > 0):
@@ -191,6 +184,7 @@ def makeReq(url, qParams):
         return lxml.html.fromstring(res.text)
 
 def extractHeaderInfo(listing):
+    print "in extractHeaderInfo"
 
     ret = {}
 
@@ -199,6 +193,8 @@ def extractHeaderInfo(listing):
     selHood = CSSSelector(".result-hood")
     selMaptag = CSSSelector('.maptag')
     selHousing = CSSSelector('.housing')
+
+    print "Retrieved items from header with CSSSelectors"
 
     try:
         ret["id"] = int(listing.attrib["data-pid"])
@@ -226,11 +222,13 @@ def extractHeaderInfo(listing):
 
     try:
         ret["price"] = int(selPrice(listing)[0].text[1:])
+        print "Retrieved price"
     except ValueError as e:
         print "Could not parse price for https://sfbay.craigslist.org" + ret["href"]
         return None
 
     hoodList = selHood(listing)
+    print "retrieved neighborhood"
     if (len(hoodList) > 0):
         ret["hood"] = hoodList[0].text.strip(" ()")
     else:
@@ -253,7 +251,10 @@ def extractHeaderInfo(listing):
     return ret
 
 def getLatLon(href):
-    page = makeReq("https://sfbay.craigslist.org" + href, {})
+    print "in getLatLong"
+    print "'" + href + "'"
+    #page = makeReq("https://sfbay.craigslist.org" + href, {})
+    page = makeReq(href, {})
     sleep(.4)
 
     selMap = CSSSelector("#map")
@@ -277,17 +278,17 @@ def hasSeen(db, info):
 """
 
 def updateLastSeenDb(newDt, db):
-    db.execute("""
-                INSERT OR REPLACE INTO LastSeen(id, yr, mth, day, hour, min)
-                    VALUES(1, ?, ?, ?, ?, ?);
-            """, (
-        newDt["yr"],
-        newDt["mth"],
-        newDt["day"],
-        newDt["hour"],
-        newDt["min"]
-    ))
-    db.commit()
+    #db.execute("""
+    #            INSERT OR REPLACE INTO LastSeen(id, yr, mth, day, hour, min)
+    #                VALUES(1, ?, ?, ?, ?, ?);
+    #        """, (
+    #    newDt["yr"],
+    #    newDt["mth"],
+    #    newDt["day"],
+    #    newDt["hour"],
+    #    newDt["min"]
+    #))
+    #db.commit()
     return
 
 def computePrefs(input):
@@ -305,9 +306,12 @@ def computePrefs(input):
             "host" : "localhost"
         },
         "qParams": {
-            "max_price" : 5450,
-            "min_price" : 3000,
+            "max_price" : 2500,
+            "min_price" : 1000,
             "sort" : "date"
+        },
+        "scraperParams": {
+            "max_to_see" : 100
         }
     }
 
@@ -319,10 +323,15 @@ def start(inputPrefs):
     print "Running scraper."
 
     scraperPrefs = computePrefs(inputPrefs)
-    db = psycopg2.connect(dbname=scraperPrefs["dbParams"]["dbname"], user=scraperPrefs["dbParams"]["user"],
-                          password=scraperPrefs["dbParams"]["password"], host=scraperPrefs["dbParams"]["host"])
+
+    dbParams = scraperPrefs["dbParams"]
+    queryParams = scraperPrefs["qParams"]
+    scraperParams = scraperPrefs["scraperParams"]
+
+    db = psycopg2.connect(dbname=dbParams["dbname"], user=dbParams["user"],
+                          password=dbParams["password"], host=dbParams["host"])
     setupDb(db)
-    maxToSee = total = 1080
+    maxToSee = total = scraperParams["max_to_see"]
 
 
     lastSeenDb = getLastSeenDb(db)
@@ -335,9 +344,8 @@ def start(inputPrefs):
         saved = []
         while (s < maxToSee and s < total and not seenDuplicate):
 
-            qParams = scraperPrefs["qParams"]
-            qParams["s"] = s
-            parsed = makeReq("https://sfbay.craigslist.org/search/apa", qParams)
+            queryParams["s"] = s
+            parsed = makeReq("https://sfbay.craigslist.org/search/apa", queryParams)
 
             selRows = CSSSelector('.result-row')
             selTotal = CSSSelector('.totalcount')
@@ -381,29 +389,45 @@ def start(inputPrefs):
                 else:
                     "Error: mentioned number of listings doesn't equal actual number of listings."
             sleep(2)
-        if (updateSeenDt is not None):
+        if updateSeenDt is not None:
             updateLastSeenDb(updateSeenDt, db)
-        for entry in saved:
-            db.execute("""INSERT OR REPLACE INTO Listing(
-                                id,
-                                title,
-                                href,
-                                price,
-                                yr,
-                                mth,
-                                day,
-                                hour,
-                                min,
-                                latitude,
-                                longitude,
-                                neighborhood)
-                            VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);""", (
-                        entry["id"], entry["title"], "https://sfbay.craigslist.org" + entry["href"],
-                        entry["price"], entry["dt"]["yr"], entry["dt"]["mth"],
-                        entry["dt"]["day"], entry["dt"]["hour"], entry["dt"]["min"],
-                        entry["lat"], entry["lon"], entry["hood"]
-            ))
-            db.commit()
+        #for entry in saved:
+            #db.execute("""INSERT OR REPLACE INTO Listing(
+            #                    id,
+            #                    title,
+            #                    href,
+            #                    price,
+            #                    yr,
+            #                    mth,
+            #                    day,
+            #                    hour,
+            #                    min,
+            #                    latitude,
+            #                    longitude,
+            #                    neighborhood)
+            #                VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);""", (
+            #            entry["id"], entry["title"], "https://sfbay.craigslist.org" + entry["href"],
+            #            entry["price"], entry["dt"]["yr"], entry["dt"]["mth"],
+            #            entry["dt"]["day"], entry["dt"]["hour"], entry["dt"]["min"],
+            #            entry["lat"], entry["lon"], entry["hood"]
+            #))
+
+            #db.execute("""INSERT OR REPLACE INTO Listing(
+            #                    id,
+            #                    title,
+            #                    href,
+            #                    price,
+            #                    latitude,
+            #                    longitude,
+            #                    neighborhood,
+            #                    br,
+            #                    ts)
+            #                VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);""", (
+            #entry["id"], entry["title"], "https://sfbay.craigslist.org" + entry["href"],
+            #entry["price"], entry["lat"], entry["lon"], entry["hood"], 0,
+            #entry["dt"]["yr"] + "-" + entry["dt"]["mth"] + "-" + entry["dt"]["day"] + " " + entry["dt"]["hour"] + ":" entry["dt"]["min"] + ":00"
+            #))
+            #db.commit()
         print str(s) + " listings retrieved."
         print str(len(saved)) + " listings saved."
         print str(parseErrors) + " listings could not be parsed."

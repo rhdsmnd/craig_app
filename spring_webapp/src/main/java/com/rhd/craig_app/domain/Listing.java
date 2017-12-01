@@ -1,4 +1,4 @@
-package rhd.craig_app.domain;
+package com.rhd.craig_app.domain;
 
 import java.util.Date;
 

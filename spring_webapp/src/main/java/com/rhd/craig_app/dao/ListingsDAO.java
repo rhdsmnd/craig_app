@@ -1,7 +1,8 @@
-package rhd.craig_app.dao;
+package com.rhd.craig_app.dao;
 
+import com.rhd.craig_app.domain.Listing;
 
 public interface ListingsDAO {
 
-    public Listings[] queryDb(int num);
+    public Listing[] queryDb(Long ts);
 }

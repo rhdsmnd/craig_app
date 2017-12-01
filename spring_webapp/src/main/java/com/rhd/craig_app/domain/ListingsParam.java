@@ -1,4 +1,7 @@
-package rhd.craig_app.domain;
+package com.rhd.craig_app.domain;
+
+import java.util.Date;
+import java.util.List;
 
 public class ListingsParam {
     public enum SortCategory {
@@ -22,22 +25,22 @@ public class ListingsParam {
 
     private String[] neighborhoods;
 
-    private Double[][] areasOfInterest;
-    private Double[][] areasOfDisinterest;
+    private List<Double[]> areasOfInterest;
+    private List<Double[]> areasOfDisinterest;
 
-    public rhd.craig_app.domain.ListingsParam.SortCategory getSortedBy() {
+    public com.rhd.craig_app.domain.ListingsParam.SortCategory getSortedBy() {
         return sortedBy;
     }
 
-    public void setSortedBy(rhd.craig_app.domain.ListingsParam.SortCategory sortedBy) {
+    public void setSortedBy(com.rhd.craig_app.domain.ListingsParam.SortCategory sortedBy) {
         this.sortedBy = sortedBy;
     }
 
-    public rhd.craig_app.domain.ListingsParam.SortOrder getSortOrder() {
+    public com.rhd.craig_app.domain.ListingsParam.SortOrder getSortOrder() {
         return sortOrder;
     }
 
-    public void setSortOrder(rhd.craig_app.domain.ListingsParam.SortOrder sortOrder) {
+    public void setSortOrder(com.rhd.craig_app.domain.ListingsParam.SortOrder sortOrder) {
         this.sortOrder = sortOrder;
     }
 
@@ -89,19 +92,19 @@ public class ListingsParam {
         this.neighborhoods = neighborhoods;
     }
 
-    public Double[][] getAreasOfInterest() {
+    public List<Double[]> getAreasOfInterest() {
         return areasOfInterest;
     }
 
-    public void setAreasOfInterest(Double[][] areasOfInterest) {
+    public void setAreasOfInterest(List<Double[]> areasOfInterest) {
         this.areasOfInterest = areasOfInterest;
     }
 
-    public Double[][] getAreasOfDisinterest() {
+    public List<Double[]> getAreasOfDisinterest() {
         return areasOfDisinterest;
     }
 
-    public void setAreasOfDisinterest(Double[][] areasOfDisinterest) {
+    public void setAreasOfDisinterest(List<Double[]> areasOfDisinterest) {
         this.areasOfDisinterest = areasOfDisinterest;
     }
 }
