@@ -17,7 +17,7 @@ import lxml.html
 from lxml.cssselect import CSSSelector
 from lxml import etree
 
-bartStations = {
+pointsOfInterest = {
     "12th St. Oakland City Center" : (37.803768, -122.271450),
     "16th St. Mission" : (37.765062, -122.419694),
     "19th St. Oakland" : (37.808350, -122.268602),
@@ -28,23 +28,22 @@ bartStations = {
     "West Oakland" : (37.804872, -122.295140)
 }
 
-sfBox = [
-    (37.797605, -122.457160),
-    (37.797605, -122.389955),
-    (37.747739, -122.389955),
-    (37.747739, -122.451753)
-]
+desiredLocations = {
+    'sfBox' : [(37.797605, -122.457160),
+             (37.797605, -122.389955),
+             (37.747739, -122.389955),
+             (37.747739, -122.451753)]
+}
 
+avoidLocations = {
 
-
-
+}
 
 dtPat = re.compile("(?P<yr>\d\d\d\d)-(?P<mth>\d\d)-(?P<day>\d\d) (?P<hour>\d+):(?P<min>\d+)")
 
 def getProjectRootDir():
     fileName = os.path.realpath(__file__)
     return fileName[0: fileName.rfind(os.sep) + 1]
-
 
 def setupDb(db):
 
@@ -64,13 +63,6 @@ def setupDb(db):
             neighborhood TEXT NOT NULL
         );
       """)
-
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS last_seen(
-          ts TIMESTAMP WITHOUT TIME ZONE NOT NULL,
-          CONSTRAINT last_seen_pkey PRIMARY KEY (ts)
-        );
-    """)
 
     db.commit()
     return db
