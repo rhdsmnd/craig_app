@@ -14,6 +14,8 @@ import psycopg2
 
 
 import lxml.html
+
+
 from lxml.cssselect import CSSSelector
 from lxml import etree
 

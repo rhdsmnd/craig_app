@@ -14,7 +14,8 @@ public class ListingsServiceImpl implements ListingsService {
     private ListingsDAO listingsDAO;
 
     public Listing[] getListings() {
-        return getListings(0);
+        //return getListings(0);
+        return null;
     }
 
     public Listing[] getListings(Long ts) {
