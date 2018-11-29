@@ -19,3 +19,4 @@ As programmers, we can use computers -- who are much quicker at, more accessible
 ### The Implementation
 
 There are three main application components: the frontend web interface, the backend web server, and the web scraper.
+
